@@ -1,41 +1,48 @@
 const express = require('express');
-const router = express.Router();
+const { check } = require('express-validator');
+const propertyController = require('../controllers/propertyController');
 const auth = require('../middleware/auth');
-const role = require('../middleware/role');
-const { check, validationResult } = require('express-validator');
-const {
-  getProperties,
-  getPropertyById,
-  createProperty,
-  updateProperty,
-  deleteProperty
-} = require('../controllers/propertyController');
+const upload = require('../middleware/upload');
 
-// @route GET api/properties
-router.get('/', getProperties);
+const router = express.Router();
 
-// @route GET api/properties/:id
-router.get('/:id', getPropertyById);
+// @route   GET api/properties
+// @access  Public
+router.get('/', propertyController.getProperties);
 
-// @route POST api/properties
-router.post('/', [
+// @route   GET api/properties/:id
+// @access  Public
+router.get('/:id', propertyController.getPropertyById);
+
+// @route   POST api/properties
+// @access  Private
+router.post(
+  '/',
   auth,
-  role('owner'),
-  check('title', 'Title is required').not().isEmpty(),
-  check('description', 'Description is required').not().isEmpty(),
-  check('price', 'Price is required').isNumeric()
-], createProperty);
+  upload.single('image'),
+  [
+    check('title', 'Title is required').not().isEmpty(),
+    check('description', 'Description is required').not().isEmpty(),
+    check('price', 'Price is required').isFloat(),
+  ],
+  propertyController.createProperty
+);
 
-// @route PUT api/properties/:id
-router.put('/:id', [
+// @route   PUT api/properties/:id
+// @access  Private
+router.put(
+  '/:id',
   auth,
-  role('owner'),
-  check('title', 'Title is required').not().isEmpty(),
-  check('description', 'Description is required').not().isEmpty(),
-  check('price', 'Price is required').isNumeric()
-], updateProperty);
+  [
+    check('title', 'Title is required').not().isEmpty(),
+    check('description', 'Description is required').not().isEmpty(),
+    check('price', 'Price is required').isFloat(),
+  ],
+  propertyController.updateProperty
+);
 
-// @route DELETE api/properties/:id
-router.delete('/:id', auth, deleteProperty);
+// @route   DELETE api/properties/:id
+// @access  Private
+router.delete('/:id', auth, propertyController.deleteProperty);
 
 module.exports = router;

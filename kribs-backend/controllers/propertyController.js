@@ -1,81 +1,99 @@
 const Property = require('../models/Property');
+const { validationResult } = require('express-validator');
+const fs = require('fs');
+const path = require('path');
 
 exports.getProperties = async (req, res) => {
   try {
-    const properties = await Property.find();
+    const properties = await Property.find().populate('owner', ['name', 'email']);
     res.json(properties);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send('Server Error');
   }
 };
 
 exports.getPropertyById = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.id);
-    if (!property)
-      return res.status(404).json({ msg: 'Property not found' });
+    const property = await Property.findById(req.params.id).populate('owner', ['name', 'email']);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
     res.json(property);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId')
-      return res.status(404).json({ msg: 'Property not found' });
-    res.status(500).send('Server error');
+    res.status(500).send('Server Error');
   }
 };
 
 exports.createProperty = async (req, res) => {
-  const { title, description, price, location, image } = req.body;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  const { title, description, price } = req.body;
+  const image = req.file ? req.file.filename : '';
 
   try {
-    const newProperty = new Property({
+    const property = new Property({
       title,
-      descriptioon,
+      description,
       price,
-      location,
-      image
+      image,
+      owner: req.user.id,
     });
 
-    const property = await newProperty.save();
-    res.json(property);
+    await property.save();
+    res.status(201).json(property);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send('Server Error');
   }
 };
 
 exports.updateProperty = async (req, res) => {
-  const { title, description, price, location, image } = req.body;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  const { title, description, price } = req.body;
 
   try {
     let property = await Property.findById(req.params.id);
-    if (!property)
-      return res.status(404).json({ msg: 'Property not found' });
+    if (!property) return res.status(404).json({ message: 'Property not found' });
 
-    property.title = title || property.title;
-    property.description = description || property.description;
-    property.price = price || property.price;
-    property.location = location || property.location;
-    property.image = image || property.image;
+    if (property.owner.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
 
-    property = await Property.findByIdAndUpdate(req.params.id, { $set: property });
+    property = await Property.findByIdAndUpdate(
+      req.params.id,
+      { $set: { title, description, price } },
+      { new: true }
+    );
+
     res.json(property);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send('Server Error');
   }
 };
 
 exports.deleteProperty = async (req, res) => {
   try {
-    let property = await Property.findById(req.params.id);
-    if (!property)
-      return res.status(404).json({ msg: 'Property not found' });
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
 
-    await Property.findByIdAndRemove(req.params.id, { $set: property });
-    res.json({ msg: 'Property removed' });
+    if (property.owner.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    // Remove the image file
+    const imagePath = path.join(__dirname, '..', 'uploads', property.image);
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
+
+    await property.remove();
+    res.json({ message: 'Property removed' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send('Server Error');
   }
 };
