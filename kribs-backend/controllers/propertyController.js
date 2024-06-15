@@ -44,7 +44,7 @@ exports.createProperty = async (req, res) => {
   }
 };
 
-exports.updatePrperty = async (req, res) => {
+exports.updateProperty = async (req, res) => {
   const { title, description, price, location, image } = req.body;
 
   try {
