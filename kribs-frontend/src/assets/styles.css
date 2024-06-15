@@ -1,0 +1,41 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  color: #42b983;
+}
+
+.container {
+  padding: 16px;
+}
+
+input, select, button {
+  padding: 8px;
+  margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+button {
+  background-color: #42b983;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #369d75;
+}
+
+.error {
+  color: red;
+  margin-top: 16px;
+}
+
+.loading {
+  text-align: center;
+  font-size: 24px;
+}
